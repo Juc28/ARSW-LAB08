@@ -6,7 +6,7 @@ var app = (function () {
             this.y=y;
         }        
     }
-    
+    var _num = 0;
     var stompClient = null;
 
     var addPointToCanvas = function (point) {        
@@ -26,7 +26,26 @@ var app = (function () {
             y: evt.clientY - rect.top
         };
     };
-
+    var addPolygonToCanvas = function (points) {
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+        var cont = 1;
+        ctx.fillStyle = '#721682';
+        ctx.beginPath();
+        ctx.moveTo(points[0].x,points[0].y);
+        points.filter((point,index) => {return index > 0}).map(function (point) {
+            if (cont == 4){
+                cont = 0;
+                ctx.moveTo(point.x,point.y);
+            }else{
+                ctx.lineTo(point.x, point.y);
+            }
+            cont++;
+            ctx.stroke();
+        });
+        ctx.closePath();
+        ctx.fill();
+    };
 
     var connectAndSubscribe = function (callback) {
         console.info('Connecting to WS...');
@@ -36,7 +55,9 @@ var app = (function () {
         //subscribe to /topic/TOPICXX when connections succeed
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
-            stompClient.subscribe('/topic/newpoint', function (eventbody) {
+            //stompClient.subscribe('/topic/newpoint', function (eventbody) {
+            //stompClient.subscribe('/topic/newpoint'+_num, function (eventbody) {
+            stompClient.subscribe('/topic/newpoint.'+_num, function (eventbody) {
                 var theObject = JSON.parse(eventbody.body);
                 //callback("New Point: " + theObject.x + " " + theObject.y);
                 callback(new Point(theObject.x,theObject.y));
@@ -67,7 +88,9 @@ var app = (function () {
             addPointToCanvas(pt);
 
             //publicar el evento
-            stompClient.send("/topic/newpoint", {}, JSON.stringify(pt));
+            //stompClient.send("/topic/newpoint", {}, JSON.stringify(pt));
+            //stompClient.send("/topic/newpoint"+_num, {}, JSON.stringify(pt));
+            stompClient.send("/app/newpoint."+_num, {}, JSON.stringify(pt));
         },
 
         disconnect: function () {
@@ -76,7 +99,20 @@ var app = (function () {
             }
             setConnected(false);
             console.log("Disconnected");
+
+    },
+
+        setNumDibujo: function() {
+        var num = prompt("Ingrese el número de su dibujo: ", "");
+        if (num == null){
+            num = 0;
+            alert("Número incorrecto, se le asignó el 0");
         }
+        else{
+            _num = num;
+            document.getElementById("dibujoNum").innerHTML = _num ;
+        }
+    }
     };
 
 })();
