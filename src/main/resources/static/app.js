@@ -37,6 +37,7 @@ var app = (function () {
             if (cont == 4){
                 cont = 0;
                 ctx.moveTo(point.x,point.y);
+                System.out.println("Poligono");
             }else{
                 ctx.lineTo(point.x, point.y);
             }
@@ -51,17 +52,18 @@ var app = (function () {
         console.info('Connecting to WS...');
         var socket = new SockJS('/stompendpoint');
         stompClient = Stomp.over(socket);
-        
-        //subscribe to /topic/TOPICXX when connections succeed
+
+        //subscribe to /topic/newpoint+num when connections succeed
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
-            //stompClient.subscribe('/topic/newpoint', function (eventbody) {
-            //stompClient.subscribe('/topic/newpoint'+_num, function (eventbody) {
             stompClient.subscribe('/topic/newpoint.'+_num, function (eventbody) {
                 var theObject = JSON.parse(eventbody.body);
                 //callback("New Point: " + theObject.x + " " + theObject.y);
                 callback(new Point(theObject.x,theObject.y));
-                
+            });
+            stompClient.subscribe("/topic/newpolygon." + _num, function(eventbody) {
+                var theObject = JSON.parse(eventbody.body);
+                addPolygonToCanvas(theObject);
             });
         });
 
