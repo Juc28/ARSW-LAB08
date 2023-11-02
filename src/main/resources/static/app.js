@@ -26,22 +26,44 @@ var app = (function () {
             y: evt.clientY - rect.top
         };
     };
-
+    var addPolygonToCanvas = function (points) {
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+        var cont = 1;
+        ctx.fillStyle = '#721682';
+        ctx.beginPath();
+        ctx.moveTo(points[0].x,points[0].y);
+        points.filter((point,index) => {return index > 0}).map(function (point) {
+            if (cont == 4){
+                cont = 0;
+                ctx.moveTo(point.x,point.y);
+                System.out.println("Poligono");
+            }else{
+                ctx.lineTo(point.x, point.y);
+            }
+            cont++;
+            ctx.stroke();
+        });
+        ctx.closePath();
+        ctx.fill();
+    };
 
     var connectAndSubscribe = function (callback) {
         console.info('Connecting to WS...');
         var socket = new SockJS('/stompendpoint');
         stompClient = Stomp.over(socket);
-        
-        //subscribe to /topic/TOPICXX when connections succeed
+
+        //subscribe to /topic/newpoint+num when connections succeed
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
-            //stompClient.subscribe('/topic/newpoint', function (eventbody) {
-            stompClient.subscribe('/topic/newpoint'+_num, function (eventbody) {
+            stompClient.subscribe('/topic/newpoint.'+_num, function (eventbody) {
                 var theObject = JSON.parse(eventbody.body);
                 //callback("New Point: " + theObject.x + " " + theObject.y);
                 callback(new Point(theObject.x,theObject.y));
-                
+            });
+            stompClient.subscribe("/topic/newpolygon." + _num, function(eventbody) {
+                var theObject = JSON.parse(eventbody.body);
+                addPolygonToCanvas(theObject);
             });
         });
 
@@ -69,7 +91,8 @@ var app = (function () {
 
             //publicar el evento
             //stompClient.send("/topic/newpoint", {}, JSON.stringify(pt));
-            stompClient.send("/topic/newpoint"+_num, {}, JSON.stringify(pt));
+            //stompClient.send("/topic/newpoint"+_num, {}, JSON.stringify(pt));
+            stompClient.send("/app/newpoint."+_num, {}, JSON.stringify(pt));
         },
 
         disconnect: function () {
